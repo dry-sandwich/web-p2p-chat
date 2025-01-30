@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Made By DJ</title>
+    <title>P2P Chat</title>
     <style>
         body { font-family: Arial, sans-serif; }
         .message-container { height: 50vh; overflow-y: auto; border: 1px solid #ddd; padding: 10px; }
@@ -24,6 +24,17 @@
     </div>
 
     <div>
+        <label>Remote Offer:</label>
+        <textarea id="remoteOffer"></textarea>
+        <button onclick="acceptOffer()">Accept Offer</button>
+    </div>
+
+    <div>
+        <label>Your Answer:</label>
+        <textarea id="localAnswer" readonly></textarea>
+    </div>
+
+    <div>
         <label>Remote Answer:</label>
         <textarea id="remoteAnswer"></textarea>
         <button onclick="setRemoteAnswer()">Set Answer</button>
@@ -39,41 +50,69 @@
     <script>
         let peerConnection;
         let dataChannel;
+        let iceCandidates = [];
 
-        async function createOffer() {
+        function setupPeerConnection() {
             peerConnection = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
 
-            dataChannel = peerConnection.createDataChannel("chat");
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    iceCandidates.push(event.candidate);
+                }
+            };
+
+            peerConnection.ondatachannel = (event) => {
+                dataChannel = event.channel;
+                setupDataChannel();
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                updateConnectionStatus(peerConnection.connectionState === "connected" ? "connected" : "disconnected");
+            };
+        }
+
+        function setupDataChannel() {
             dataChannel.onopen = () => {
                 document.getElementById("sendBtn").disabled = false;
                 updateConnectionStatus("connected");
             };
+
             dataChannel.onmessage = (event) => displayMessage(event.data, false);
+        }
 
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) console.log("ICE Candidate:", event.candidate);
-            };
-
-            peerConnection.onconnectionstatechange = () => {
-                console.log("Connection state:", peerConnection.connectionState);
-                if (peerConnection.connectionState === "connected") {
-                    updateConnectionStatus("connected");
-                } else {
-                    updateConnectionStatus("disconnected");
-                }
-            };
+        async function createOffer() {
+            setupPeerConnection();
+            dataChannel = peerConnection.createDataChannel("chat");
+            setupDataChannel();
 
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
-            document.getElementById("localOffer").value = btoa(JSON.stringify(offer));
+            document.getElementById("localOffer").value = btoa(JSON.stringify({ offer, iceCandidates }));
+        }
+
+        async function acceptOffer() {
+            setupPeerConnection();
+            const remoteOfferData = document.getElementById("remoteOffer").value;
+            if (!remoteOfferData) return alert("Paste the remote offer first!");
+
+            const { offer, iceCandidates: remoteIce } = JSON.parse(atob(remoteOfferData));
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+            remoteIce.forEach(candidate => peerConnection.addIceCandidate(new RTCIceCandidate(candidate)));
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            document.getElementById("localAnswer").value = btoa(JSON.stringify({ answer, iceCandidates }));
         }
 
         async function setRemoteAnswer() {
-            const remoteAnswerText = document.getElementById("remoteAnswer").value;
-            if (!remoteAnswerText) return alert("Paste the remote answer first!");
-            
-            const remoteAnswer = JSON.parse(atob(remoteAnswerText));
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(remoteAnswer));
+            const remoteAnswerData = document.getElementById("remoteAnswer").value;
+            if (!remoteAnswerData) return alert("Paste the remote answer first!");
+
+            const { answer, iceCandidates: remoteIce } = JSON.parse(atob(remoteAnswerData));
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+
+            remoteIce.forEach(candidate => peerConnection.addIceCandidate(new RTCIceCandidate(candidate)));
         }
 
         function sendMessage() {
