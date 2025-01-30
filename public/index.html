@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Secure Walkie-Talkie</title>
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --danger: #e74c3c;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .online { background: var(--primary); }
+        .offline { background: var(--danger); }
+
+        .message-container {
+            border: 2px solid #34495e;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            height: 60vh;
+            overflow-y: auto;
+            background: #2c3e50;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 3px;
+            background: #34495e;
+            word-break: break-word;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input, button {
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            background: #34495e;
+            color: white;
+        }
+
+        button {
+            background: var(--primary);
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        .key-management {
+            margin-top: 20px;
+            border-top: 1px solid #34495e;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="connectionStatus">
+        <span class="status-indicator offline"></span>
+        <span>Peer Status: Offline</span>
+    </div>
+
+    <div class="message-container" id="messageContainer"></div>
+
+    <div class="input-group">
+        <input type="text" id="messageInput" placeholder="Secure message...">
+        <button id="sendButton" disabled>Send</button>
+    </div>
+
+    <div class="key-management">
+        <button onclick="exportKeys()">Export Keys</button>
+        <input type="file" id="importKeys" hidden>
+        <button onclick="document.getElementById('importKeys').click()">Import Keys</button>
+    </div>
+
+    <script>
+        let peerConnection;
+        let dataChannel;
+        let cryptoKeys;
+        let messageQueue = [];
+
+        // Initialize WebRTC
+        async function initialize() {
+            // Generate or load crypto keys
+            cryptoKeys = await loadOrGenerateKeys();
+            
+            // Set up peer connection
+            const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+            peerConnection = new RTCPeerConnection(config);
+
+            // Set up data channel
+            dataChannel = peerConnection.createDataChannel('secureChat');
+            setupDataChannel();
+            
+            updateUIStatus(false);
+        }
+
+        // Crypto key management
+        async function loadOrGenerateKeys() {
+            let keys = localStorage.getItem('cryptoKeys');
+            if (keys) return JSON.parse(keys);
+
+            const keyPair = await window.crypto.subtle.generateKey(
+                { name: 'ECDH', namedCurve: 'P-256' },
+                true,
+                ['deriveKey']
+            );
+
+            const publicKey = await window.crypto.subtle.exportKey('jwk', keyPair.publicKey);
+            const privateKey = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
+
+            keys = { publicKey, privateKey };
+            localStorage.setItem('cryptoKeys', JSON.stringify(keys));
+            return keys;
+        }
+
+        // Encryption/Decryption
+        async function encryptMessage(message) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                await getSharedKey(),
+                data
+            );
+
+            return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
+        }
+
+        async function decryptMessage(encryptedData) {
+            const decoder = new TextDecoder();
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: new Uint8Array(encryptedData.iv) },
+                await getSharedKey(),
+                new Uint8Array(encryptedData.data)
+            );
+
+            return decoder.decode(decrypted);
+        }
+
+        // WebRTC Data Channel setup
+        function setupDataChannel() {
+            dataChannel.onopen = () => {
+                updateUIStatus(true);
+                flushMessageQueue();
+            };
+
+            dataChannel.onclose = () => updateUIStatus(false);
+
+            dataChannel.onmessage = async ({ data }) => {
+                const encrypted = JSON.parse(data);
+                const decrypted = await decryptMessage(encrypted);
+                displayMessage(decrypted, false);
+                saveMessageToHistory(decrypted, false);
+            };
+        }
+
+        // Connection management
+        async function connect(remotePublicKey) {
+            const key = await window.crypto.subtle.importKey(
+                'jwk',
+                remotePublicKey,
+                { name: 'ECDH', namedCurve: 'P-256' },
+                true,
+                []
+            );
+
+            const sharedKey = await window.crypto.subtle.deriveKey(
+                { name: 'ECDH', public: key },
+                await window.crypto.subtle.importKey(
+                    'jwk',
+                    cryptoKeys.privateKey,
+                    { name: 'ECDH', namedCurve: 'P-256' },
+                    false,
+                    ['deriveKey']
+                ),
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['encrypt', 'decrypt']
+            );
+
+            localStorage.setItem('sharedKey', JSON.stringify(
+                await window.crypto.subtle.exportKey('jwk', sharedKey)
+            ));
+        }
+
+        // Message handling
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const encrypted = await encryptMessage(message);
+            
+            if (dataChannel.readyState === 'open') {
+                dataChannel.send(JSON.stringify(encrypted));
+                displayMessage(message, true);
+                saveMessageToHistory(message, true);
+            } else {
+                messageQueue.push(encrypted);
+            }
+
+            input.value = '';
+        }
+
+        function flushMessageQueue() {
+            messageQueue.forEach(async encrypted => {
+                dataChannel.send(JSON.stringify(encrypted));
+            });
+            messageQueue = [];
+        }
+
+        // Local storage
+        function saveMessageToHistory(message, isOutgoing) {
+            const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            history.push({
+                message,
+                timestamp: new Date().toISOString(),
+                direction: isOutgoing ? 'out' : 'in'
+            });
+            localStorage.setItem('chatHistory', JSON.stringify(history));
+        }
+
+        function loadMessageHistory() {
+            const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            history.forEach(entry => {
+                displayMessage(entry.message, entry.direction === 'out');
+            });
+        }
+
+        // UI Functions
+        function displayMessage(message, isOutgoing) {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.style.textAlign = isOutgoing ? 'right' : 'left';
+            messageDiv.textContent = message;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateUIStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.querySelector('.status-indicator').className = 
+                `status-indicator ${connected ? 'online' : 'offline'}`;
+            statusElement.querySelector('span:last-child').textContent = 
+                `Peer Status: ${connected ? 'Online' : 'Offline'}`;
+            document.getElementById('sendButton').disabled = !connected;
+        }
+
+        // Key export/import
+        async function exportKeys() {
+            const blob = new Blob([JSON.stringify(cryptoKeys)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'walkie-talkie-keys.json';
+            a.click();
+        }
+
+        document.getElementById('importKeys').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                cryptoKeys = JSON.parse(event.target.result);
+                localStorage.setItem('cryptoKeys', JSON.stringify(cryptoKeys));
+                await initialize();
+            };
+            reader.readAsText(file);
+        });
+
+        // Initialize app
+        initialize();
+        loadMessageHistory();
+
+        // Event listeners
+        document.getElementById('sendButton').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
