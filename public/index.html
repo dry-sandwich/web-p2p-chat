@@ -87,32 +87,33 @@
 
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
-            document.getElementById("localOffer").value = btoa(JSON.stringify({ offer, iceCandidates }));
+            
+            document.getElementById("localOffer").value = btoa(JSON.stringify({ sdp: offer, ice: iceCandidates }));
         }
 
         async function acceptOffer() {
             setupPeerConnection();
-            const remoteOfferData = document.getElementById("remoteOffer").value;
-            if (!remoteOfferData) return alert("Paste the remote offer first!");
+            const remoteOfferText = document.getElementById("remoteOffer").value;
+            if (!remoteOfferText) return alert("Paste the remote offer first!");
 
-            const { offer, iceCandidates: remoteIce } = JSON.parse(atob(remoteOfferData));
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-
-            remoteIce.forEach(candidate => peerConnection.addIceCandidate(new RTCIceCandidate(candidate)));
+            const remoteOffer = JSON.parse(atob(remoteOfferText));
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(remoteOffer.sdp));
 
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
-            document.getElementById("localAnswer").value = btoa(JSON.stringify({ answer, iceCandidates }));
+            document.getElementById("localAnswer").value = btoa(JSON.stringify({ sdp: answer, ice: iceCandidates }));
+
+            remoteOffer.ice.forEach(candidate => peerConnection.addIceCandidate(new RTCIceCandidate(candidate)));
         }
 
         async function setRemoteAnswer() {
-            const remoteAnswerData = document.getElementById("remoteAnswer").value;
-            if (!remoteAnswerData) return alert("Paste the remote answer first!");
+            const remoteAnswerText = document.getElementById("remoteAnswer").value;
+            if (!remoteAnswerText) return alert("Paste the remote answer first!");
 
-            const { answer, iceCandidates: remoteIce } = JSON.parse(atob(remoteAnswerData));
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            const remoteAnswer = JSON.parse(atob(remoteAnswerText));
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(remoteAnswer.sdp));
 
-            remoteIce.forEach(candidate => peerConnection.addIceCandidate(new RTCIceCandidate(candidate)));
+            remoteAnswer.ice.forEach(candidate => peerConnection.addIceCandidate(new RTCIceCandidate(candidate)));
         }
 
         function sendMessage() {
