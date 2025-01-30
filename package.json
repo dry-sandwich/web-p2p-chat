@@ -1,0 +1,11 @@
+{
+  "name": "web-p2p-chat",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "serve public",
+    "build": "echo 'Build complete'"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
