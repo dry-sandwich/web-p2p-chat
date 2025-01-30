@@ -270,7 +270,7 @@
                 );
 
                 peerConnection = new RTCPeerConnection({
-                    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+                    iceServers: [{ urls: "stun:stun1.l.google.com:19302" }]
                 });
 
                 dataChannel = peerConnection.createDataChannel("secureChannel");
@@ -287,11 +287,19 @@
             dataChannel.onopen = () => {
                 document.getElementById('sendBtn').disabled = false;
             };
-
+                console.log("Data channel state:", dataChannel.readyState);
+            //dataChannel.onmessage = async ({ data }) => {
+                //const encrypted = JSON.parse(data);
+                //const decrypted = await decryptMessage(encrypted);
+                //displayMessage(decrypted, false);
             dataChannel.onmessage = async ({ data }) => {
-                const encrypted = JSON.parse(data);
-                const decrypted = await decryptMessage(encrypted);
-                displayMessage(decrypted, false);
+    console.log("Received raw data:", data);
+    const encrypted = JSON.parse(data);
+    const decrypted = await decryptMessage(encrypted);
+    console.log("Decrypted message:", decrypted);
+    displayMessage(decrypted, false);
+};
+
             };
         }
 
