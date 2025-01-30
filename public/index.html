@@ -5,364 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Made By DJ</title>
     <style>
-        :root {
-            --primary: #6C63FF;
-            --background: #ffffff;
-            --text: #2c3e50;
-            --message-bg: #f1f3f4;
-            --message-text: #2c3e50;
-            --input-bg: #ffffff;
-            --input-border: #e0e0e0;
-            --button-bg: #6C63FF;
-            --button-text: #ffffff;
-            --card-bg: #f8f9fa;
-        }
-
-        [data-theme="dark"] {
-            --primary: #BB86FC;
-            --background: #121212;
-            --text: #e0e0e0;
-            --message-bg: #1e1e1e;
-            --message-text: #e0e0e0;
-            --input-bg: #1e1e1e;
-            --input-border: #333333;
-            --button-bg: #BB86FC;
-            --button-text: #121212;
-            --card-bg: #1f1f1f;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--background);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            transition: background 0.3s, color 0.3s;
-        }
-
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: var(--primary);
-            color: var(--button-text);
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding-top: 60px;
-        }
-
-        .key-exchange-container {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .key-exchange {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .key-section {
-            border: 2px dashed var(--input-border);
-            border-radius: 8px;
-            padding: 15px;
-            position: relative;
-        }
-
-        .key-section textarea {
-            width: 100%;
-            height: 80px;
-            border: none;
-            background: transparent;
-            color: var(--text);
-            resize: none;
-            font-family: monospace;
-        }
-
-        .key-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .key-actions button {
-            flex: 1;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            background: var(--primary);
-            color: var(--button-text);
-        }
-
-        .key-actions button.secondary {
-            background: var(--input-bg);
-            color: var(--text);
-        }
-
-        .connection-status {
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            background: var(--message-bg);
-            color: var(--message-text);
-        }
-
-        .connected { background: #4CAF50; color: white; }
-        .disconnected { background: #f44336; color: white; }
-
-        .message-container {
-            background: var(--message-bg);
-            border-radius: 12px;
-            padding: 15px;
-            height: 50vh;
-            overflow-y: auto;
-            margin-bottom: 20px;
-        }
-
-        .message {
-            margin: 10px 0;
-            padding: 10px 15px;
-            border-radius: 8px;
-            max-width: 70%;
-            background: var(--primary);
-            color: var(--button-text);
-        }
-
-        .message.remote {
-            background: var(--message-bg);
-            color: var(--message-text);
-            margin-left: auto;
-        }
-
-        .input-container {
-            display: flex;
-            gap: 10px;
-        }
-
-        .input-container input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            background: var(--input-bg);
-            color: var(--text);
-        }
-
-        .input-container button {
-            padding: 10px 20px;
-            background: var(--primary);
-            color: var(--button-text);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
+        body { font-family: Arial, sans-serif; }
+        .message-container { height: 50vh; overflow-y: auto; border: 1px solid #ddd; padding: 10px; }
+        .message { padding: 10px; margin: 5px; border-radius: 5px; max-width: 70%; }
+        .local { background: #6C63FF; color: white; align-self: flex-end; }
+        .remote { background: #f1f3f4; }
+        .disconnected { color: red; }
+        .connected { color: green; }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
-
-    <div class="container">
-        <!-- Key Exchange Section -->
-        <div class="key-exchange-container">
-            <div class="key-exchange">
-                <div class="key-section">
-                    <label>Your Key</label>
-                    <textarea id="localKey" readonly></textarea>
-                    <div class="key-actions">
-                        <button onclick="copyLocalKey()">Copy</button>
-                        <button onclick="generateNewKey()" class="secondary">Regenerate</button>
-                    </div>
-                </div>
-
-                <div>↔️</div>
-
-                <div class="key-section">
-                    <label>Peer's Key</label>
-                    <textarea id="remoteKey" placeholder="Paste peer's key here"></textarea>
-                    <div class="key-actions">
-                        <button onclick="initiateConnection()">Connect</button>
-                        <button onclick="clearRemoteKey()" class="secondary">Clear</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Connection Status -->
-        <div class="connection-status disconnected" id="status">
-            🔴 Disconnected
-        </div>
-
-        <!-- Chat UI -->
-        <div class="message-container" id="messages"></div>
-
-        <div class="input-container">
-            <input type="text" id="messageInput" placeholder="Type a message...">
-            <button onclick="sendMessage()" id="sendBtn" disabled>Send</button>
-        </div>
+    <h2>P2P Chat</h2>
+    
+    <div>
+        <label>Your Offer:</label>
+        <textarea id="localOffer" readonly></textarea>
+        <button onclick="createOffer()">Create Offer</button>
     </div>
 
+    <div>
+        <label>Remote Answer:</label>
+        <textarea id="remoteAnswer"></textarea>
+        <button onclick="setRemoteAnswer()">Set Answer</button>
+    </div>
+
+    <p id="status" class="disconnected">🔴 Disconnected</p>
+
+    <div class="message-container" id="messages"></div>
+
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+
     <script>
-        // Theme Toggle
-        function toggleTheme() {
-            const body = document.body;
-            const newTheme = body.dataset.theme === "dark" ? "light" : "dark";
-            body.dataset.theme = newTheme;
-            localStorage.setItem("theme", newTheme);
-        }
-
-        // Load saved theme
-        const savedTheme = localStorage.getItem("theme") || "light";
-        document.body.dataset.theme = savedTheme;
-
-        // WebRTC and Encryption Logic
         let peerConnection;
         let dataChannel;
-        let localKeyPair;
-        let sharedSecret;
 
-        async function generateKeys() {
-            localKeyPair = await window.crypto.subtle.generateKey(
-                { name: "ECDH", namedCurve: "P-384" },
-                true,
-                ["deriveKey"]
-            );
+        async function createOffer() {
+            peerConnection = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
 
-            const publicKey = await window.crypto.subtle.exportKey(
-                "jwk",
-                localKeyPair.publicKey
-            );
-
-            return btoa(JSON.stringify(publicKey));
-        }
-
-        async function initiateConnection() {
-            const remoteKey = document.getElementById('remoteKey').value;
-            if (!remoteKey) return;
-
-            try {
-                const publicKey = await window.crypto.subtle.importKey(
-                    "jwk",
-                    JSON.parse(atob(remoteKey)),
-                    { name: "ECDH", namedCurve: "P-384" },
-                    true,
-                    []
-                );
-
-                sharedSecret = await window.crypto.subtle.deriveKey(
-                    { name: "ECDH", public: publicKey },
-                    localKeyPair.privateKey,
-                    { name: "AES-GCM", length: 256 },
-                    true,
-                    ["encrypt", "decrypt"]
-                );
-
-                peerConnection = new RTCPeerConnection({
-                    iceServers: [{ urls: "stun:stun1.l.google.com:19302" }]
-                });
-
-                dataChannel = peerConnection.createDataChannel("secureChannel");
-                setupDataChannel();
-
-                updateConnectionStatus('connected');
-            } catch (error) {
-                console.error('Connection failed:', error);
-                alert('Invalid key. Please check and try again.');
-            }
-        }
-
-        function setupDataChannel() {
+            dataChannel = peerConnection.createDataChannel("chat");
             dataChannel.onopen = () => {
-                document.getElementById('sendBtn').disabled = false;
+                document.getElementById("sendBtn").disabled = false;
+                updateConnectionStatus("connected");
             };
-                console.log("Data channel state:", dataChannel.readyState);
-            //dataChannel.onmessage = async ({ data }) => {
-                //const encrypted = JSON.parse(data);
-                //const decrypted = await decryptMessage(encrypted);
-                //displayMessage(decrypted, false);
-            dataChannel.onmessage = async ({ data }) => {
-    console.log("Received raw data:", data);
-    const encrypted = JSON.parse(data);
-    const decrypted = await decryptMessage(encrypted);
-    console.log("Decrypted message:", decrypted);
-    displayMessage(decrypted, false);
+            dataChannel.onmessage = (event) => displayMessage(event.data, false);
 
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) console.log("ICE Candidate:", event.candidate);
             };
+
+            peerConnection.onconnectionstatechange = () => {
+                console.log("Connection state:", peerConnection.connectionState);
+                if (peerConnection.connectionState === "connected") {
+                    updateConnectionStatus("connected");
+                } else {
+                    updateConnectionStatus("disconnected");
+                }
+            };
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            document.getElementById("localOffer").value = btoa(JSON.stringify(offer));
         }
 
-        async function encryptMessage(text) {
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const encrypted = await window.crypto.subtle.encrypt(
-                { name: "AES-GCM", iv },
-                sharedSecret,
-                new TextEncoder().encode(text)
-            );
-            return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
+        async function setRemoteAnswer() {
+            const remoteAnswerText = document.getElementById("remoteAnswer").value;
+            if (!remoteAnswerText) return alert("Paste the remote answer first!");
+            
+            const remoteAnswer = JSON.parse(atob(remoteAnswerText));
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(remoteAnswer));
         }
 
-        async function decryptMessage(encrypted) {
-            const decrypted = await window.crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: new Uint8Array(encrypted.iv) },
-                sharedSecret,
-                new Uint8Array(encrypted.data)
-            );
-            return new TextDecoder().decode(decrypted);
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const encrypted = await encryptMessage(input.value);
-            dataChannel.send(JSON.stringify(encrypted));
-            displayMessage(input.value, true);
-            input.value = '';
+        function sendMessage() {
+            const messageInput = document.getElementById("messageInput");
+            dataChannel.send(messageInput.value);
+            displayMessage(messageInput.value, true);
+            messageInput.value = "";
         }
 
         function displayMessage(text, isLocal) {
-            const div = document.createElement('div');
-            div.className = `message ${isLocal ? '' : 'remote'}`;
+            const div = document.createElement("div");
+            div.className = "message " + (isLocal ? "local" : "remote");
             div.textContent = text;
-            document.getElementById('messages').appendChild(div);
-            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+            document.getElementById("messages").appendChild(div);
         }
 
         function updateConnectionStatus(status) {
-            const statusElement = document.getElementById('status');
-            statusElement.className = `connection-status ${status}`;
-            statusElement.textContent = status === 'connected' ? '🟢 Connected' : '🔴 Disconnected';
+            const statusElement = document.getElementById("status");
+            statusElement.className = status;
+            statusElement.textContent = status === "connected" ? "🟢 Connected" : "🔴 Disconnected";
         }
-
-        async function copyLocalKey() {
-            const key = document.getElementById('localKey').value;
-            await navigator.clipboard.writeText(key);
-            alert('Key copied to clipboard!');
-        }
-
-        async function generateNewKey() {
-            const newKey = await generateKeys();
-            document.getElementById('localKey').value = newKey;
-        }
-
-        function clearRemoteKey() {
-            document.getElementById('remoteKey').value = '';
-        }
-
-        // Initialize
-        (async function init() {
-            const localKey = await generateKeys();
-            document.getElementById('localKey').value = localKey;
-        })();
     </script>
 </body>
 </html>
