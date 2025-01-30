@@ -1,0 +1,15 @@
+{
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/.*",
+      "dest": "/index.html"
+    }
+  ],
+  "headers": {
+    "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.stun.l.google.com",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload"
+  }
+}
