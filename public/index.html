@@ -1,308 +1,361 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Made by DJ</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Made By DJ</title>
     <style>
         :root {
-            --primary: #2ecc71;
-            --danger: #e74c3c;
+            --primary: #6C63FF;
+            --background: #ffffff;
+            --text: #2c3e50;
+            --message-bg: #f1f3f4;
+            --message-text: #2c3e50;
+            --input-bg: #ffffff;
+            --input-border: #e0e0e0;
+            --button-bg: #6C63FF;
+            --button-text: #ffffff;
+            --card-bg: #f8f9fa;
+        }
+
+        [data-theme="dark"] {
+            --primary: #BB86FC;
+            --background: #121212;
+            --text: #e0e0e0;
+            --message-bg: #1e1e1e;
+            --message-text: #e0e0e0;
+            --input-bg: #1e1e1e;
+            --input-border: #333333;
+            --button-bg: #BB86FC;
+            --button-text: #121212;
+            --card-bg: #1f1f1f;
         }
 
         body {
-            font-family: 'Courier New', monospace;
-            max-width: 400px;
-            margin: 0 auto;
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            margin: 0;
             padding: 20px;
-            background: #1a1a1a;
-            color: #fff;
+            transition: background 0.3s, color 0.3s;
         }
 
-        .status-indicator {
-            width: 15px;
-            height: 15px;
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--primary);
+            color: var(--button-text);
+            border: none;
+            padding: 10px 15px;
             border-radius: 50%;
-            display: inline-block;
-            margin-right: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .online { background: var(--primary); }
-        .offline { background: var(--danger); }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding-top: 60px;
+        }
+
+        .key-exchange-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .key-exchange {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .key-section {
+            border: 2px dashed var(--input-border);
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .key-section textarea {
+            width: 100%;
+            height: 80px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            resize: none;
+            font-family: monospace;
+        }
+
+        .key-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .key-actions button {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: var(--primary);
+            color: var(--button-text);
+        }
+
+        .key-actions button.secondary {
+            background: var(--input-bg);
+            color: var(--text);
+        }
+
+        .connection-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: var(--message-bg);
+            color: var(--message-text);
+        }
+
+        .connected { background: #4CAF50; color: white; }
+        .disconnected { background: #f44336; color: white; }
 
         .message-container {
-            border: 2px solid #34495e;
-            border-radius: 5px;
+            background: var(--message-bg);
+            border-radius: 12px;
             padding: 15px;
-            margin: 20px 0;
-            height: 60vh;
+            height: 50vh;
             overflow-y: auto;
-            background: #2c3e50;
+            margin-bottom: 20px;
         }
 
         .message {
             margin: 10px 0;
-            padding: 8px;
-            border-radius: 3px;
-            background: #34495e;
-            word-break: break-word;
+            padding: 10px 15px;
+            border-radius: 8px;
+            max-width: 70%;
+            background: var(--primary);
+            color: var(--button-text);
         }
 
-        .input-group {
+        .message.remote {
+            background: var(--message-bg);
+            color: var(--message-text);
+            margin-left: auto;
+        }
+
+        .input-container {
             display: flex;
             gap: 10px;
         }
 
-        input, button {
+        .input-container input {
+            flex: 1;
             padding: 10px;
-            border: none;
-            border-radius: 3px;
-            background: #34495e;
-            color: white;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text);
         }
 
-        button {
+        .input-container button {
+            padding: 10px 20px;
             background: var(--primary);
+            color: var(--button-text);
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
-            transition: opacity 0.3s;
-        }
-
-        button:disabled {
-            background: #7f8c8d;
-            cursor: not-allowed;
-        }
-
-        .key-management {
-            margin-top: 20px;
-            border-top: 1px solid #34495e;
-            padding-top: 15px;
         }
     </style>
 </head>
 <body>
-    <div id="connectionStatus">
-        <span class="status-indicator offline"></span>
-        <span>Peer Status: Offline</span>
-    </div>
+    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
 
-    <div class="message-container" id="messageContainer"></div>
+    <div class="container">
+        <!-- Key Exchange Section -->
+        <div class="key-exchange-container">
+            <div class="key-exchange">
+                <div class="key-section">
+                    <label>Your Key</label>
+                    <textarea id="localKey" readonly></textarea>
+                    <div class="key-actions">
+                        <button onclick="copyLocalKey()">Copy</button>
+                        <button onclick="generateNewKey()" class="secondary">Regenerate</button>
+                    </div>
+                </div>
 
-    <div class="input-group">
-        <input type="text" id="messageInput" placeholder="Secure message...">
-        <button id="sendButton" disabled>Send</button>
-    </div>
+                <div>↔️</div>
 
-    <div class="key-management">
-        <button onclick="exportKeys()">Export Keys</button>
-        <input type="file" id="importKeys" hidden>
-        <button onclick="document.getElementById('importKeys').click()">Import Keys</button>
+                <div class="key-section">
+                    <label>Peer's Key</label>
+                    <textarea id="remoteKey" placeholder="Paste peer's key here"></textarea>
+                    <div class="key-actions">
+                        <button onclick="initiateConnection()">Connect</button>
+                        <button onclick="clearRemoteKey()" class="secondary">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="connection-status disconnected" id="status">
+            🔴 Disconnected
+        </div>
+
+        <!-- Chat UI -->
+        <div class="message-container" id="messages"></div>
+
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button onclick="sendMessage()" id="sendBtn" disabled>Send</button>
+        </div>
     </div>
 
     <script>
+        // Theme Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const newTheme = body.dataset.theme === "dark" ? "light" : "dark";
+            body.dataset.theme = newTheme;
+            localStorage.setItem("theme", newTheme);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem("theme") || "light";
+        document.body.dataset.theme = savedTheme;
+
+        // WebRTC and Encryption Logic
         let peerConnection;
         let dataChannel;
-        let cryptoKeys;
-        let messageQueue = [];
+        let localKeyPair;
+        let sharedSecret;
 
-        // Initialize WebRTC
-        async function initialize() {
-            // Generate or load crypto keys
-            cryptoKeys = await loadOrGenerateKeys();
-            
-            // Set up peer connection
-            const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
-            peerConnection = new RTCPeerConnection(config);
-
-            // Set up data channel
-            dataChannel = peerConnection.createDataChannel('secureChat');
-            setupDataChannel();
-            
-            updateUIStatus(false);
-        }
-
-        // Crypto key management
-        async function loadOrGenerateKeys() {
-            let keys = localStorage.getItem('cryptoKeys');
-            if (keys) return JSON.parse(keys);
-
-            const keyPair = await window.crypto.subtle.generateKey(
-                { name: 'ECDH', namedCurve: 'P-256' },
+        async function generateKeys() {
+            localKeyPair = await window.crypto.subtle.generateKey(
+                { name: "ECDH", namedCurve: "P-384" },
                 true,
-                ['deriveKey']
+                ["deriveKey"]
             );
 
-            const publicKey = await window.crypto.subtle.exportKey('jwk', keyPair.publicKey);
-            const privateKey = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
-
-            keys = { publicKey, privateKey };
-            localStorage.setItem('cryptoKeys', JSON.stringify(keys));
-            return keys;
-        }
-
-        // Encryption/Decryption
-        async function encryptMessage(message) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(message);
-            
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const encrypted = await window.crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv },
-                await getSharedKey(),
-                data
+            const publicKey = await window.crypto.subtle.exportKey(
+                "jwk",
+                localKeyPair.publicKey
             );
 
-            return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
+            return btoa(JSON.stringify(publicKey));
         }
 
-        async function decryptMessage(encryptedData) {
-            const decoder = new TextDecoder();
-            const decrypted = await window.crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv: new Uint8Array(encryptedData.iv) },
-                await getSharedKey(),
-                new Uint8Array(encryptedData.data)
-            );
+        async function initiateConnection() {
+            const remoteKey = document.getElementById('remoteKey').value;
+            if (!remoteKey) return;
 
-            return decoder.decode(decrypted);
+            try {
+                const publicKey = await window.crypto.subtle.importKey(
+                    "jwk",
+                    JSON.parse(atob(remoteKey)),
+                    { name: "ECDH", namedCurve: "P-384" },
+                    true,
+                    []
+                );
+
+                sharedSecret = await window.crypto.subtle.deriveKey(
+                    { name: "ECDH", public: publicKey },
+                    localKeyPair.privateKey,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+                });
+
+                dataChannel = peerConnection.createDataChannel("secureChannel");
+                setupDataChannel();
+
+                updateConnectionStatus('connected');
+            } catch (error) {
+                console.error('Connection failed:', error);
+                alert('Invalid key. Please check and try again.');
+            }
         }
 
-        // WebRTC Data Channel setup
         function setupDataChannel() {
             dataChannel.onopen = () => {
-                updateUIStatus(true);
-                flushMessageQueue();
+                document.getElementById('sendBtn').disabled = false;
             };
-
-            dataChannel.onclose = () => updateUIStatus(false);
 
             dataChannel.onmessage = async ({ data }) => {
                 const encrypted = JSON.parse(data);
                 const decrypted = await decryptMessage(encrypted);
                 displayMessage(decrypted, false);
-                saveMessageToHistory(decrypted, false);
             };
         }
 
-        // Connection management
-        async function connect(remotePublicKey) {
-            const key = await window.crypto.subtle.importKey(
-                'jwk',
-                remotePublicKey,
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                []
+        async function encryptMessage(text) {
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv },
+                sharedSecret,
+                new TextEncoder().encode(text)
             );
-
-            const sharedKey = await window.crypto.subtle.deriveKey(
-                { name: 'ECDH', public: key },
-                await window.crypto.subtle.importKey(
-                    'jwk',
-                    cryptoKeys.privateKey,
-                    { name: 'ECDH', namedCurve: 'P-256' },
-                    false,
-                    ['deriveKey']
-                ),
-                { name: 'AES-GCM', length: 256 },
-                true,
-                ['encrypt', 'decrypt']
-            );
-
-            localStorage.setItem('sharedKey', JSON.stringify(
-                await window.crypto.subtle.exportKey('jwk', sharedKey)
-            ));
+            return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
         }
 
-        // Message handling
+        async function decryptMessage(encrypted) {
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: new Uint8Array(encrypted.iv) },
+                sharedSecret,
+                new Uint8Array(encrypted.data)
+            );
+            return new TextDecoder().decode(decrypted);
+        }
+
         async function sendMessage() {
             const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            if (!message) return;
-
-            const encrypted = await encryptMessage(message);
-            
-            if (dataChannel.readyState === 'open') {
-                dataChannel.send(JSON.stringify(encrypted));
-                displayMessage(message, true);
-                saveMessageToHistory(message, true);
-            } else {
-                messageQueue.push(encrypted);
-            }
-
+            const encrypted = await encryptMessage(input.value);
+            dataChannel.send(JSON.stringify(encrypted));
+            displayMessage(input.value, true);
             input.value = '';
         }
 
-        function flushMessageQueue() {
-            messageQueue.forEach(async encrypted => {
-                dataChannel.send(JSON.stringify(encrypted));
-            });
-            messageQueue = [];
+        function displayMessage(text, isLocal) {
+            const div = document.createElement('div');
+            div.className = `message ${isLocal ? '' : 'remote'}`;
+            div.textContent = text;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
         }
 
-        // Local storage
-        function saveMessageToHistory(message, isOutgoing) {
-            const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-            history.push({
-                message,
-                timestamp: new Date().toISOString(),
-                direction: isOutgoing ? 'out' : 'in'
-            });
-            localStorage.setItem('chatHistory', JSON.stringify(history));
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('status');
+            statusElement.className = `connection-status ${status}`;
+            statusElement.textContent = status === 'connected' ? '🟢 Connected' : '🔴 Disconnected';
         }
 
-        function loadMessageHistory() {
-            const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-            history.forEach(entry => {
-                displayMessage(entry.message, entry.direction === 'out');
-            });
+        async function copyLocalKey() {
+            const key = document.getElementById('localKey').value;
+            await navigator.clipboard.writeText(key);
+            alert('Key copied to clipboard!');
         }
 
-        // UI Functions
-        function displayMessage(message, isOutgoing) {
-            const container = document.getElementById('messageContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
-            messageDiv.style.textAlign = isOutgoing ? 'right' : 'left';
-            messageDiv.textContent = message;
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
+        async function generateNewKey() {
+            const newKey = await generateKeys();
+            document.getElementById('localKey').value = newKey;
         }
 
-        function updateUIStatus(connected) {
-            const statusElement = document.getElementById('connectionStatus');
-            statusElement.querySelector('.status-indicator').className = 
-                `status-indicator ${connected ? 'online' : 'offline'}`;
-            statusElement.querySelector('span:last-child').textContent = 
-                `Peer Status: ${connected ? 'Online' : 'Offline'}`;
-            document.getElementById('sendButton').disabled = !connected;
+        function clearRemoteKey() {
+            document.getElementById('remoteKey').value = '';
         }
 
-        // Key export/import
-        async function exportKeys() {
-            const blob = new Blob([JSON.stringify(cryptoKeys)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'walkie-talkie-keys.json';
-            a.click();
-        }
-
-        document.getElementById('importKeys').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                cryptoKeys = JSON.parse(event.target.result);
-                localStorage.setItem('cryptoKeys', JSON.stringify(cryptoKeys));
-                await initialize();
-            };
-            reader.readAsText(file);
-        });
-
-        // Initialize app
-        initialize();
-        loadMessageHistory();
-
-        // Event listeners
-        document.getElementById('sendButton').addEventListener('click', sendMessage);
-        document.getElementById('messageInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
+        // Initialize
+        (async function init() {
+            const localKey = await generateKeys();
+            document.getElementById('localKey').value = localKey;
+        })();
     </script>
 </body>
 </html>
